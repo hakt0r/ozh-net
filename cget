@@ -1,0 +1,51 @@
+#!/bin/sh
+
+_copyright(){ echo "
+  ozh lightweight shell extensions
+  2008-2014 - anx @ ulzq de (Sebastian Glaser)
+  2008-2014 - fly @ ulzq de
+  Licensed under GNU GPL v3"; }
+_license(){ echo "
+  ozh is free software; you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation; either version 2, or (at your option)
+  any later version.
+
+  ozh is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with this software; see the file COPYING.  If not, write to
+  the Free Software Foundation, Inc., 59 Temple Place, Suite 330,
+  Boston, MA 02111-1307 USA
+
+  http://www.gnu.org/licenses/gpl.html"; }
+
+cget(){
+  local last_change=;   local expires=4000;     local result="";
+  local http_status=""; local http_modified=""; local p="$HOME/.cache/";
+  local key="$(echo -n "$1"|md5sum -t|tr -d ' -')"; local update=false
+  mkdir -p "$p"; [ -f "$p/$key.updated" ] && last_change=$(cat "$p/$key.updated")
+  # this might be a bit misleading: .updated timestamp represents last_try
+  # contents represent http_modified if available
+  touch --date="1970-01-01 $(( $(date +"%s") + 0)) sec" "$p/$key.updated";
+  # try to update only if cache files dont exist ( -f)
+  # or next update is intended ( x -nt y )
+  if [ ! -f "$p/$key.updated" ] || [ ! -f "$p/$key" ] || [ "$p/$key.updated" -nt "$p/$key" ];then
+    result=$(curl -H "If-Modified-Since: $last_change" -si "$1" 2>/dev/null)
+    http_status=$(( $(echo "$result"|head -n1|sed 's/^HTTP\/... //'|cut -f 1 -d ' ') + 0 ));
+    http_modified=$(echo "$result" |grep -P "^Last-Modified:"|sed "s/Last-Modified: //");
+    if [ ! -z "$http_status" ];then
+      if test "$http_status" -eq 200;then
+        [ -z "$http_modified" ] && echo -n "$http_modified" > "$p/$key.updated"
+        echo "$result"|sed '1,/^.$/d' > "$p/$key"
+        # after this the timestamp of the cache file will be the expiry time
+        touch --date="1970-01-01 $(( $(date +"%s") + 60)) sec" "$p/$key";
+        update="true";
+    fi;fi;fi
+  [ "$update" = "true" ] && cat "$p/$key" && return 0; # handle return states
+  if [ -f "$p/$key" ];then  cat "$p/$key";   return 2; # return cache if possible
+  else return 1;fi; }
+_cget_help(){ echo "cached wget\n    Exit Codes: 0 - updated, 1 - fail, 2 - cached version"; }

@@ -1,0 +1,496 @@
+#!/bin/sh
+
+_copyright(){ echo "
+  ozh lightweight shell extensions
+  2008-2014 - anx @ ulzq de (Sebastian Glaser)
+  2008-2014 - fly @ ulzq de
+  Licensed under GNU GPL v3"; }
+_license(){ echo "
+  ozh is free software; you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation; either version 2, or (at your option)
+  any later version.
+
+  ozh is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with this software; see the file COPYING.  If not, write to
+  the Free Software Foundation, Inc., 59 Temple Place, Suite 330,
+  Boston, MA 02111-1307 USA
+
+  http://www.gnu.org/licenses/gpl.html"; }
+
+[ -n "$OZH_INSTALL" ] && { oz install  +lib +prefix net proxy trashmail; }
+[ -n "$OZH_HELP" ] && {
+  _help_net(){         echo "isIp ipAnd ipAdd ipSub ipInv netbase netfirst netlast netbcast cidr2mask sameSubnet devip devbcast ipAnd sameSubnet freeport ws sniftp snifhttp rstblock excport blockip unblockip portsc sb sniftp randomip randomhost randomdns dnstest ssh_copy_id svnc legitmac ende deen defr frde killport icqid recon_wget yt2mp3 natrouter finduplink otrsecret ssynergyc asynergy set_gateway set_dns sdns ajwatch ipof getip dwiki mac macvend webserv uopen"; }
+  _help_ajwatch(){     echo "watch aljazeera EN"; }
+  _help_asynergy(){    echo "automatically start synergys and synergyc on all hosts. needs working synergy config in $HOME/.asyns.conf and keyauth(for full automation)."; }
+  _help_blockip(){     echo "[1:ip] block ip via iptables"; }
+  _help_cdir2mask(){   echo "converts cdir notation to netmask"; }
+  _help_deen(){        echo "[1:term] translate german to english"; }
+  _help_defr(){        echo "[1:term] translate german to french"; }
+  _help_dnstest(){     echo "[1:host] test server for port 53(dns)"; }
+  _help_dwiki(){       echo "wikipedia request via dns"; }
+  _help_ende(){        echo "[1:term] translate english to german"; }
+  _help_excport(){     echo "[1:port/pattern] block all TCP except port by sending RSTs to both sides (simGoldenShield)"; }
+  _help_finduplink(){  echo "returns the first device to be able to ping 8.8.8.8"; }
+  _help_frde(){        echo "[1:term] translate french to german"; }
+  _help_getip(){       echo "get external ip"; }
+  _help_icqid(){       echo "[1:UIN] get name and nick of a icq UIN;"; }
+  _help_ipAnd(){       echo "binary add ips"; }
+  _help_ipAnd(){       echo "binary add ips"; }
+  _help_ipof(){        echo "print ipof [1:dns-name]"; }
+  _help_killport(){    echo "[1:port] kills the application blocking a port (if possible)"; }
+  _help_legitmac(){    echo "echo 00: prefixed mac address"; }
+  _help_mac(){         echo "generate (completely) random mac address"; }
+  _help_macvend(){     echo "[1:first half of mac] find out the vendor of a mac address"; }
+  _help_natrouter(){   echo "[1:start,stop,restart]starts a router on local machine"; }
+  _help_otrsecret(){   echo "[1:host] generate a random passphrase, output it and scp it to host"; }
+  _help_portsc(){      echo "[1:ip] portscans port 1-1024 of ip (using nc)"; }
+  _help_randomdns(){   echo "finds a random responsive dns server on the internets"; }
+  _help_randomhost(){  echo "finds a random responsive host on the internet (can take a little while)"; }
+  _help_randomip(){    echo "generate a (completely) random ip address"; }
+  _help_recon_wget(){  echo "wgets a file restarting the download every 1-60 seconds"; }
+  _help_rstblock(){    echo "[1:port/pattern] block port by sending RSTs to both sides (simGoldenShield)"; }
+  _help_sameSubnet(){  echo "are ip#1 and ip#2 in subnet #3?"; }
+  _help_set_dns(){     echo "set nameserver to #1"; }
+  _help_set_gateway(){ echo "set gateway tp #1"; }
+  _help_snifhttp(){    echo "sniff http(port 80) on all devices."; }
+  _help_sniftp(){      echo "sniffs ftp (port 21) for user and pass"; }
+  _help_ssh_copy_id(){ echo "advanced ssh-copy-id: [-i IDENTITY] [-p PORT] USER@HOST "; }
+  _help_ssynergyc(){   echo "[1:host] start synergy client thru ssh tunnel (ssh-server on host needed)."; }
+  _help_svnc(){        echo "tunnel vnc thru ssh";svnc; }
+  _help_translate(){   echo "[1:term [2:from-language(default:en) 3:to-language(default:de)]]"; }
+  _help_unblockip(){   echo "[1:ip] unblock ip"; }
+  _help_webserv(){     echo "[1:file] serve file over HTTP on port 42023"; }
+  _help_ws(){          echo "1:url - sorta surf the web"; }
+  _help_yt2mp3(){      echo "download a youtube video and convert to mp3"; }
+}
+
+isIp(){ echo -n "$*"|grep -q '^[0-9]\+.[0-9]\+.[0-9]\+.[0-9]\+$' && return 0 || return 1; }
+
+ipAnd(){
+  [ -z "$1" ] && return 1
+  [ -z "$2" ] && return 1
+  for i in 1 2 3 4; do
+    a=$(echo $1|cut -d . -f $i)
+    b=$(echo $2|cut -d . -f $i)
+    local c$i=$(( $a & $b ))
+  done; echo "$c1.$c2.$c3.$c4"; }
+
+ipAdd(){
+  [ -z "$1" ] && return 1
+  [ -z "$2" ] && return 1
+  for i in 1 2 3 4; do
+    a=$(echo $1|cut -d . -f $i)
+    b=$(echo $2|cut -d . -f $i)
+    local c$i=$(( $a + $b ))
+  done; echo "$c1.$c2.$c3.$c4"; }
+
+ipSub(){
+  [ -z "$1" ] && return 1;
+  [ -z "$2" ] && return 1
+  for i in 1 2 3 4; do
+    a=$(echo $1|cut -d . -f $i)
+    b=$(echo $2|cut -d . -f $i)
+    local c$i=$(( $a - $b ))
+  done; echo "$c1.$c2.$c3.$c4"; }
+
+ipInv(){
+  [ -z "$1" ] && return 1
+  for i in 1 2 3 4; do
+    a=$(echo $1|cut -d . -f $i)
+    local c$i=$(( 255 - $a ))
+  done; echo "$c1.$c2.$c3.$c4"; }
+
+netbase(){
+  ip=$(echo $1|cut -d / -f 1)
+  cidr=$(echo $1|cut -d / -f 2)
+  mask=$(cidr2mask $cidr)
+  echo $(ipAnd $ip $mask); }
+
+netfirst(){
+  base=$(netbase $1)
+  echo $(ipAdd $base "0.0.0.1"); }
+
+netlast(){
+  bcast=$(netbcast $1)
+  echo $(ipSub $bcast "0.0.0.1"); }
+
+netbcast(){
+  ip=$(echo $1|cut -d / -f 1)
+  cidr=$(echo $1|cut -d / -f 2)
+  mask=$(cidr2mask $cidr)
+  base=$(ipAnd $ip $mask)
+  range=$(ipInv $mask)
+  echo $(ipAdd $base $range); }
+
+cidr2mask(){
+  mask=$(( 4294967295 << $(( 32 - $(echo $1|cut -d '/' -f 2) ))))
+  echo $(( $mask >> 24 & 255 )).$(( $mask >> 16 & 255 )).$(( $mask >> 8  & 255 )).$(( $mask & 255 )); }
+
+sameSubnet(){ [ "$(ipAnd $1 $3)" = "$(ipAnd $2 $3)" ] && return 0|| return 1; }
+
+devip(){ ifconfig $1| grep -o "inet addr:[0-9]\+.[0-9]\+.[0-9]\+.[0-9]\+"|cut -d : -f2; }
+
+devbcast(){ ifconfig $1| grep -o "Bcast:[0-9]\+.[0-9]\+.[0-9]\+.[0-9]\+"|cut -d : -f2; }
+
+ipAnd(){ # 1:ip 2:ip
+  [ -z "$1" ] && return 1
+  [ -z "$2" ] && return 1
+  for i in 1 2 3 4; do
+    a=$(echo $1|cut -d . -f $i)
+    b=$(echo $2|cut -d . -f $i)
+    local c$i=$(( $a & $b ))
+  done; echo "$c1.$c2.$c3.$c4";}
+
+sameSubnet(){ [ "$(ipAnd $1 $3)" = "$(ipAnd $2 $3)" ] && return 0|| return 1; }
+
+freeport(){
+  app_exists netstat || app_depend netstat
+  local port=1025
+  [ $(whoami) = "root" ] && port=1
+  [ ! -z "$1" ] && [ $1 -gt 0 ] && port=$(( $1 ))
+  while true; do
+    if ! netstat -ant | grep LISTEN | grep -q ":$port"; then echo "$port" && return 0;fi
+    port=$(( $port + 1 ));done; }
+
+ws(){
+  app_exists html2text || app_depend html2text;
+  wget -q http://$1 -O-|html2text|grep -vP '^[ *]+'|grep -vP '^$'|grep -vP '\['; }
+
+sniftp(){
+  app_exists ngrep || app_depend ngrep;
+  sudo ngrep -wi -d any 'user|pass' port 21; }
+
+snifhttp(){
+  app_exists ngrep || app_depend ngrep;
+  sudo ngrep -W byline -d any  port 80; }
+
+rstblock(){
+ app_exists ngrep || app_depend ngrep;
+ if [ -z $1 ];  then t='';echo "!! Blocking ALL TCP traffic by sending RST"; else echo "!! Blocking ALL TCP traffic on port $1"; t="port $1"; fi
+ sudo ngrep $t -K4 -d any; }
+
+excport(){
+  app_exists ngrep || app_depend ngrep;
+ if [ -z $1 ];  then _excport_help;return; else echo "!! RST-Blocking ALL TCP traffic except port $1"; t="port $1"; fi
+ sudo ngrep $t -v -K4 -d any; }
+
+blockip(){ iptables -I INPUT -s "$1" -j DROP; }
+
+unblockip(){ iptables -D INPUT -s "$1" -j DROP; }
+
+portsc(){
+  if ! ping -q -c1 -w10 $@ > /dev/null 2>&1; then echo $0:host $@ seems to be down; return; fi
+  for i in `seq 1 1024`; do if nc -z $@ $i; then echo $i; fi; done; }
+
+sb(){
+ echo "=== ozh Shoutbox ==="
+ tf=/tmp/$(whoami)-haksbox
+ t=$(cget http://hakt0r.de/zsh/msg/shoutbox)
+ echo $t
+ if [ "$1" != "post" ] || [ "$1" = "" ]; then return; else shift; fi
+ if [ "$2" = "" ]; then 
+  echo -n shout:
+  read m; 
+ else m="$@"; fi
+ nt="$t\n$white$(date +"%m-%d %H%M") $green$(whoami)@$red$(hostname -s)$R: $(echo $m)"
+ echo $nt > $tf
+ scp -q $tf hakt0r.de:/home/hakt0r/www/zsh/msg/shoutbox
+ if [ $? ]; then echo comment posted; else echo fail!; fi; }
+
+sniftp(){
+  app_exists ngrep || app_depend ngrep;
+  sudo ngrep -wi -d any 'user|pass' port 21; }
+
+randomip(){ echo $(random 0 255).$(random 0 255).$(random 0 255).$(random 0 255); }
+
+randomhost(){
+  for i in $(seq 0 1000); do
+    ip=$(randomip)
+    if ping -c1 -W1 $ip >/dev/null 2>&1;then
+      echo $ip;
+      return;
+    fi;
+  done; }
+
+randomdns(){
+  sudo echo ""
+  set +o monitor
+  rm .randomdns
+  touch .randomdns
+        for i in $(seq 0 1000); do
+    for x in $(seq 0 9); do
+                  ip=$(randomip)
+      echo "#$ip" >&2
+      if [ -z $(cat .randomdns) ]; then
+                    dnstest 8.8.8.8 &
+      else
+        while killall -9 nmap 2>&1 >/dev/null;do sleep 0.2;done
+        set -o monitor
+        cat .randomdns
+        return 0
+      fi
+    done
+    sleep 3;
+  done; }
+
+dnstest(){ sudo nmap -sU -p 53 $1 2>&1 | grep -q open && echo $ip > .randomdns; }
+
+ssh_copy_id(){
+  ID_FILE="${HOME}/.ssh/id_rsa.pub"
+  PORT=22
+
+  while [ ! -z "$2" ]; do
+    case "$1" in
+    "-i")
+      shift
+      # check if we have 2 parameters left, if so the first is the new ID file
+      if [ -n "$2" ]; then
+        if expr "$1" : ".*\.pub" > /dev/null ; then
+          ID_FILE="$1"
+        else
+          ID_FILE="$1.pub"
+        fi
+        shift 
+      fi
+      ;;
+    "-p")
+      PORT=$2
+      shift 2
+      ;;
+    esac
+  done
+
+  if [ x$SSH_AUTH_SOCK != x ] && ssh-add -L >/dev/null 2>&1; then
+    GET_ID="$GET_ID ssh-add -L"
+  fi
+
+  if [ -z "`eval $GET_ID`" ] && [ -r "${ID_FILE}" ] ; then
+    GET_ID="cat ${ID_FILE}"
+  fi
+
+  if [ -z "`eval $GET_ID`" ]; then
+    echo "$0: ERROR: No identities found" >&2
+    return 1
+  fi
+
+  if [ "$#" -lt 1 ] || [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
+    echo "Usage: $0 [-i [identity_file]] [-p port] [user@]machine" >&2
+    return 1
+  fi
+
+  { eval "$GET_ID" ; } | ssh -p $PORT ${1%:} "umask 077; test -d .ssh || mkdir .ssh ; cat >> .ssh/authorized_keys" || return 1
+  echo "
+  Now try logging into the machine, with "ssh '${1%:}'", and check in:\n
+    .ssh/authorized_keys\n\n
+  to make sure we haven't added extra keys that you weren't expecting.\n";}
+
+svnc(){
+  if [ -z $1 ]; then echo "Usage: svnc user@host [screen] [alt_local_screen]";return 1; fi
+  if [ -z $2 ]; then REMOTE=0;else REMOTE=$2; fi
+  if [ -z $3 ]; then LOCAL=$REMOTE; else LOCAL=$3; fi
+  echo Setting up forwarding -L590$LOCAL:localhost:590$REMOTE
+  echo ssh -f $1 -L590$LOCAL:localhost:590$REMOTE cat /dev/null
+  ssh -f $1 -L590$LOCAL:localhost:590$REMOTE cat /dev/null
+  echo Connecting to localhost :590$LOCAL
+  vinagre localhost:590$LOCAL; }
+
+legitmac(){ mac | sed 's/^../00/'; }
+
+ende(){
+  lng1="en";lng2="de";
+  t=$(echo "$@" |sed "s/ /+/");
+  wget -qO- "http://ajax.googleapis.com/ajax/services/language/translate?v=1.0&q=$t&langpair=$lng1|$lng2" | sed 's/.*"translatedText":"\([^"]*\)".*}/\1\n/'; }
+
+deen(){
+ lng1="de";lng2="en";
+ t=$(echo "$@" |sed "s/ /+/");
+ wget -qO- "http://ajax.googleapis.com/ajax/services/language/translate?v=1.0&q=$t&langpair=$lng1|$lng2" | sed 's/.*"translatedText":"\([^"]*\)".*}/\1\n/'; }
+
+defr(){
+ lng1="de";lng2="fr";
+ t=$(echo "$@" |sed "s/ /+/");
+ wget -qO- "http://ajax.googleapis.com/ajax/services/language/translate?v=1.0&q=$t&langpair=$lng1|$lng2" | sed 's/.*"translatedText":"\([^"]*\)".*}/\1\n/'; }
+
+frde(){
+  lng1="fr";lng2="de";
+  t=$(echo "$@" |sed "s/ /+/");
+  wget -qO- "http://ajax.googleapis.com/ajax/services/language/translate?v=1.0&q=$t&langpair=$lng1|$lng2" | sed 's/.*"translatedText":"\([^"]*\)".*}/\1\n/'; }
+
+killport(){
+ _task "killing process on tcp port $1";
+ i=0;while fuser -k -n tcp $1 > /dev/null 2>&1; do sleep 0.2; done
+ _done; }
+
+icqid(){
+  wget -q http://www.icq.com/people/"$1" -O /tmp/icqid.tmp 2>/dev/null
+    FN=$(cat /tmp/icqid.tmp |grep "<title>"|sed 's/<[^>]*>//g'|sed -e "s/\ \-\ ICQ.com//g")
+  NI=`cat /tmp/icqid.tmp |grep 'id="shortprofile' -A3|tail -n1|sed 's/<[^>]*>//g'|sed 's/^[  ]*//'`
+  rm  /tmp/icqid.tmp
+  echo "Full Name: $FN"
+  echo "Nick: $NI"; }
+
+recon_wget(){
+  [ -z $2 ] && o="" || o="-O $2"
+  while true;do
+    wget -nv $o -c "$1" &
+    sleep $(( $RANDOM % 60 ));
+    killall -9 wget >/dev/null 2>&1
+  done; }
+
+yt2mp3(){
+  app_exists youtube-dl || app-depend youtube-dl
+  app_exists lame || app_depend lame
+  dir= /tmp/$(whoami)-$@
+  mkdir -p $dir
+  cd $dir
+  youtube-dl -t $@
+  flv2mp3 *.flv
+  cd -
+  cp $dir/*.mp3 .
+  rm -rf $dir; }
+
+natrouter(){
+  case "$1" in
+    start)
+      LAN=eth0
+      WAN=$(finduplink)
+      _task "starting router on $LAN over $WAN"
+      if [ $WAN = '' ] ; then _fail exit 1; fi
+      echo 1 |sudo tee /proc/sys/net/ipv4/ip_forward > /dev/null
+      sudo iptables -A FORWARD -i $WAN -o $LAN -m state --state RELATED,ESTABLISHED -j ACCEPT
+      sudo iptables -A FORWARD -i $LAN -o $WAN -j ACCEPT
+      sudo iptables -A POSTROUTING -t nat -j MASQUERADE
+      #sudo /etc/init.d/dnsmasq start
+      if ping -c1 -w5 8.8.8.8 > /dev/null 2>&1;  then _done; else _fail; $0 stop;fi;;
+    stop)
+      _task "stopping router"
+      sudo iptables -F
+      echo 0 |sudo tee /proc/sys/net/ipv4/ip_forward > /dev/null
+      # sudo /etc/init.d/dnsmasq stop
+      _done;;
+    restart)
+      $0 stop
+      $0 start;;
+  esac; }
+
+finduplink(){ for i in $(ifconfig |grep encap |cut -f 1 -d ' '|grep -v lo); do if ping -I $i -c 1 -w 20 8.8.8.8 > /dev/null; then echo $i; exit 0; fi done; }
+
+otrsecret(){
+  _task "generating random otr secret passphrase"
+  PWLEN=50
+  FILE=~/.secret.otr
+  HOST=$1
+  strings /dev/urandom | grep -o '[[:alnum:]][[:punct:]]' |head -n $PWLEN | tr -d '\n'> $FILE;
+  _done;
+  echo -n "Your passphrase:"
+  cat $FILE
+  echo "\n"
+  _task "copying it to  $1:$HOME/.secret.otr"
+  scp $FILE $HOST:~ > /dev/null 2>&1
+  rm $FILE
+  _done; }
+
+ssynergyc(){
+ app_exists synergyc || app_depend synergy;
+ port=24800; host=$1
+ killport $port
+ while killall -9 synergyc > /dev/null 2>&1 ; do sleep 0.2; done
+ _task "checking for synergys on ${host}"
+ if ping -c1 -w4 $host > /dev/null 2>&1; then _done;
+        t -t "starting ssh tunnel" ssh -f -N -L 127.0.0.1:$port:$1:$port $host
+        sleep 0.5
+        t -t "starting synergyc" synergyc 127.0.0.1
+   else _fail; fi; }
+
+asynergy(){
+ app_exists synergys || app_depend synergy;
+ CONFFILE=$HOME/.asyn.conf
+ USER=$(whoami)
+ HOST=`hostname -s`
+ DOMAIN=`hostname -d`
+ if [ "$DOMAIN" != "" ]; then DOMAIN=".$DOMAIN"; fi
+ if [ ! -e $CONFFILE ]; then printf "$bred$white$bold synergy config \"$CONFFILE\" not found$RN"; return; fi
+ killport $port
+ t -t "starting synergy server" synergys -c $CONFFILE;
+ REMOTE_SCRIPT="while killall -9 synergyc > /dev/null 2>&1; do sleep 0.3; done; synergyc --display :0.0 ${HOST}${DOMAIN};"
+ for i in $(cat $CONFFILE | grep -P ':$' |tr -d ' :'|sort |uniq |grep -v -P '\n$'|grep -v `hostname`); do
+  h=${i}${DOMAIN}
+  _task "contatcting $h"
+  if ping -c1 -w2 $h > /dev/null 2>&1; then _done;
+   t -t "starting synergyc on ${h}" ssh $USER@$h $REMOTE_SCRIPT;
+  else _fail; continue; fi
+ done; }
+
+set_gateway(){
+  if [ -z $1 ]; then echo "$0:too few args"; return; fi
+  sudo su -c "route del default gw"
+  sudo su -c "route add default gw $1"; }
+
+set_dns(){
+  sudo su -c "echo 'nameserver $1' > /etc/resolv.conf"
+  [ -z $3 ] || sudo su -c "echo 'nameserver $3' >> /etc/resolv.conf"
+  [ -z $2 ] || sudo su -c "echo 'search $2 $2' >> /etc/resolv.conf"
+  [ -z $2 ] || sudo su -c "echo 'domain $2' >> /etc/resolv.conf"; }
+
+sdns(){
+  case "$1"
+  in
+  "h") set_dns 172.23.42.250 lan;;
+  "g") set_dns 8.8.8.8 com 8.8.4.4;;
+  "o") set_dns 208.67.220.220 com 208.67.222.222;;
+  "l") set_dns 127.0.0.1 lan;;
+  "i")
+    echo -n "Enter nameserver ip: "; read d;
+    if nc -qz $d 53; then e="$d"; else echo "$d doesnt respond. try again (y/N)" ; read d; if [[ "$d" == "y" ]]; then $0 "$@"; fi; return; fi
+    echo -n "[Enter nameserver 2 ip]: "; read dd;
+    echo -n "Enter search/domain: "; read dom;
+    if nc -qz "$dd" 53;then e=$(echo $d $dom $dd|tr -d "\n\r"); else e=$( echo $d $dom |tr -d "\n\r");fi
+    set_dns "$e";;
+  "*") return;;
+  esac; }
+
+ajwatch(){
+  app_depend rtmpdump
+  app_depend mplayer
+  rtmpdump -v -r rtmp://livestfslivefs.fplive.net/livestfslive-live/ -y "aljazeera_en_veryhigh" -a "aljazeeraflashlive-live" -o -| mplayer -; }
+
+ipof(){ nslookup $1|grep -oP '[0-9.]+'|tail -n1; }
+
+getip(){ curl ifconfig.me 2>/dev/null; }
+
+dwiki(){ dig +short txt "$*".wp.dg.cx; }
+
+mac(){ 2>/dev/null dd if=/dev/urandom bs=1 count=6 | od -t x1 | sed '2d;s/^0\+ //;s/ /:/g'; }
+
+macvend(){ curl -s http://standards.ieee.org/regauth/oui/oui.txt | grep $1; }
+
+webserv(){ python -m SimpleHTTPServer 42023 "$1"; }
+
+uopen(){ # PORTME
+  emulate -L zsh
+  if [ -z "$1" ]; then
+    print "Usage: uopen \$URL/\$file">&2
+    return 1
+  else
+    FILE=$1
+    MIME=$(curl --head $FILE | \
+           grep Content-Type | \
+           cut -d ' ' -f 2 | \
+           cut -d\; -f 1)
+    MIME=${MIME%$'\r'}
+    curl $FILE | see ${MIME}:-
+  fi; }
+
+curltor() { if checktor; then curl --socks5 127.0.0.1:9050 $@; fi; }
+checktor() { 
+  _task "Checking if tor works (use curltor for further torring)"
+  if [ "$(curl -s --socks5 127.0.0.1:9050 check.torproject.org |grep 'Congratulations. Your browser is configured to use Tor.')" != "" ]; then _done; return 0; else _fail; return 1; fi; }
+
+urlencode() { cat - | sed 's:%:%25:g;s: :%20:g;s:<:%3C:g;s:>:%3E:g;s:#:%23:g;s:{:%7B:g;s:}:%7D:g;s:|:%7C:g;s:\\:%5C:g;s:\^:%5E:g;s:~:%7E:g;s:\[:%5B:g;s:\]:%5D:g;s:`:%60:g;s:;:%3B:g;s:/:%2F:g;s:?:%3F:g;s^:^%3A^g;s:@:%40:g;s:=:%3D:g;s:&:%26:g;s:\$:%24:g;s:\!:%21:g;s:\*:%2A:g'; }
+urldecode() { cat - | sed 's:%25:%:g;s: :%20:g;s:%3C:<:g;s:%3E:>:g;s:%23:#:g;s:%7B:{:g;s:%7D:}:g;s:%7C:|:g;s:%5C:\:g;s:%5E:\^:g;s:%7E:~:g;s:%5B:\[:g;s:%5D:\]:g;s:%60:`:g;s:%3B:;:g;s:%2F:/:g;s:%3F:?:g;s:^%3A^:^:g;s:%40:@:g;s:%3D:=:g;s:%26:&:g;s:%24:\$:g;s:%21:\!:g;s:%2A:\*:g'; }

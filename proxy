@@ -1,0 +1,86 @@
+#!/bin/sh
+
+_copyright(){ echo "
+  ozh lightweight shell extensions
+  2008-2014 - anx @ ulzq de (Sebastian Glaser)
+  2008-2014 - fly @ ulzq de
+  Licensed under GNU GPL v3"; }
+_license(){ echo "
+  ozh is free software; you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation; either version 2, or (at your option)
+  any later version.
+
+  ozh is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with this software; see the file COPYING.  If not, write to
+  the Free Software Foundation, Inc., 59 Temple Place, Suite 330,
+  Boston, MA 02111-1307 USA
+
+  http://www.gnu.org/licenses/gpl.html"; }
+
+get_proxylists(){
+  app_depend gocr
+  app_exists convert || app_depend imagemagick
+  app_depend curl
+  curl -s "http://proxy.speedtest.at/proxybyPerformance.php?offset=0"|grep "Anonym" |sed 's/<td align=left><b>/\n/g'|grep ">Anonym<"|cut -d "<" -f1 >> ~/.proxies
+  #curl -s http://www.freeproxy.ru/download/lists/goodproxy.txt |grep -o "[0-9]\+\.[0-9]\+\.[0-9]\+\.[0-9]\+\:[0-9]\+" >>.proxies
+  hmaurl=http://www.hidemyass.com/proxy-list
+  for i in $(curl -s $hmaurl |grep -o "[0-9]\+\.[0-9]\+\.[0-9]\+\.[0-9]\+\|\/proxy-list\/img\/port\/[0-9]\+\/[0-9]" |tr -d "[:blank:]"| sed -e '{;N;s/\n/ /; }'); do
+   ip=$(echo $i|cut -d ' ' -f1)
+   purl=$(echo $i|cut -d ' ' -f2|sed 's/\/proxy-list\///')
+  `curl --connect-timeout 8 -s $hmaurl/$(echo $purl) > /tmp/port`;
+  if [ ! $? ]; then continue; fi
+  `convert /tmp/port /tmp/port.pnm >/dev/null 2>&1`;
+   port=$(gocr -C "0123456789" /tmp/port.pnm);
+   if [ $port -gt 10 ] && [ $port -lt 70000 ] && [ "$(cat ~/.proxies|grep $ip)" = "" ]; then echo $ip:$port >> ~/.proxies; fi
+  done
+  cat $HOME/.proxies | sort | uniq -u > $HOME/.proxies
+  sleep 1
+  test_proxies;}
+
+test_proxies(){
+  touch $HOME/.proxies.blacklist
+  cat $HOME/.proxies | sort | uniq -u > $HOME/.proxies
+  cat $HOME/.proxies.blacklist | sort | uniq -u > $HOME/.proxies.blacklist
+  qq rm $HOME/.proxies.working 
+  sleep 1
+  if [ ! -f $HOME/.proxies ]; then printf "$red proxyfile not found$RN"; return; fi
+  for i in $(cat $HOME/.proxies); do
+    _task "testing $i"
+      if [ "$(cat $HOME/.proxies.blacklist|grep $i)" != "" ]; then printf "$black black $RN"; continue; fi
+    if test_proxy $i; then echo $i >> $HOME/.proxies.working;_done; else echo $i >> $HOME/.proxies.blacklist; _fail; fi
+  done
+  if [ -f $HOME/.proxies.working ]; then mv $HOME/.proxies.working $HOME/.proxies; fi
+}
+
+curlrprox(){ curl -x $(prox) $@; }
+curltor(){ if checktor; then curl --socks5 127.0.0.1:9050 $@; fi; }
+checktor(){
+  _task "Checking if tor works (use curltor for further torring)"
+  if [ "$(curl -s --socks5 127.0.0.1:9050 check.torproject.org |grep 'Congratulations. Your browser is configured to use Tor.')" != "" ]; then _done; return 0; else _fail; return 1; fi
+}
+
+test_proxy(){
+  lf=/tmp/`whoami`-proxy
+  [ -f $lf ] && rm $lf
+  touch $lf
+  url="http://www.w3.org"
+  curl -s -m 3 -x $1 $url > $lf
+  if [ "$(cat $lf |grep 'World Wide Web Consortium (W3C)')" != "" ]; then rm $lf 2> /dev/null; return 0; fi
+  return 1; }
+
+prox(){
+ if [ ! $INTERNET_CONNECTION ]; then echo "no connectivity (sz to re-init or INTERNET_CONNECTION=0 to force)"; return; fi
+ if [ ! -f $HOME/.proxies ]; then get_proxylists; fi
+ l=$(cat $HOME/.proxies|wc -l)
+ if [ $l -eq 0 ]; then get_proxylists; fi
+ r=$(random 1 "$l")
+ pr=$(cat ~/proxies|head -n $r|tail -n1);
+ test_proxy $pr && echo $pr && return
+ prox
+}

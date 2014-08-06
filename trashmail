@@ -1,0 +1,64 @@
+#!/bin/sh
+
+_copyright(){ echo "
+  ozh lightweight shell extensions
+  2008-2014 - anx @ ulzq de (Sebastian Glaser)
+  2008-2014 - fly @ ulzq de
+  Licensed under GNU GPL v3"; }
+_license(){ echo "
+  ozh is free software; you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation; either version 2, or (at your option)
+  any later version.
+
+  ozh is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with this software; see the file COPYING.  If not, write to
+  the Free Software Foundation, Inc., 59 Temple Place, Suite 330,
+  Boston, MA 02111-1307 USA
+
+  http://www.gnu.org/licenses/gpl.html"; }
+
+tmail_tmde(){
+  pr="$(try_prox)"
+  echo -n "Checking mail for "; printf "$bgreen$white$bold $1@trash-mail.com $RN"
+  export http_proxy=$pr
+  local nick="$1"
+  msgid=$(wget -q -O- "http://trash-mail.com/index.php?ln=p&mail=$nick"|grep -o 'mid=[0-9]\+&tid=[0-9]\+'|head -n1)
+  wget -q -O- "http://trash-mail.com/index.php?ln=p&mail=$nick&$msgid"|html2text ; }
+
+tmail_tmib(){
+  echo -n "Checking mail for "; printf "$bgreen$white$bold $1@tempinbox.com $RN"
+  pr="$(try_prox)"
+  export http_proxy=$pr
+  local nick="$1"
+  msgid=$(wget -q -O- "http://www.tempinbox.com/cgi-bin/checkmail.pl?username=$nick&button=Check+Mail&terms=on&large=1" | grep -o '?id=[0-9]\+' |cut -d "=" -f2)
+  wget -q -O- "http://www.tempinbox.com/cgi-bin/viewmail.pl?id=$msgid" |html2text ; }
+
+tmail_mytm(){
+  echo -n "Checking mail for "; printf "$bgreen$white$bold $1@mailmetrash.com $RN"
+  local nick="$1"
+  msgid="$(wget -q -O - "http://www.mytrashmail.com/myTrashMail_inbox.aspx?email=$nick"| grep -o '&id=[0-9]\+'|head -n1|cut -d '=' -f2)"
+  wget -q -O- "http://www.mytrashmail.com/MyTrashMail_message.aspx?email=$nick&id=$msgid"|html2text; }
+
+tmail_mnto(){
+  echo -n "Checking mail for "; printf "$bgreen$white$bold $1@mailinator.com $RN"
+  local nick="$1"
+  msgid=$(wget -q -O- "http://mailinator.com/maildir.jsp?email=$nick&x=0&y=0"|grep -o 'msgid=[0-9]\+'|head -n1|cut -d '=' -f2)
+  wget -q -O- "http://mailinator.com/displayemail.jsp?email=$nick&msgid=$msgid"|html2text;
+  echo; }
+
+tmail_dspm(){
+  m=1
+  if [ ! -z $2 ]; then m=$2; fi
+  echo -n "Checking mail for "; printf "$bgreen$white$bold $1@disposeamail.com $RN"
+  pr="$(try_prox)"
+  export http_proxy=$pr
+  local nick="$1"
+  msgid="$(wget -q -O - "http://disposeamail.com/inbox/$nick"| grep -o 'view/[0-9]\+'|head -n$m|cut -d '/' -f2)"
+  wget -q -O- "http://disposeamail.com/inbox/$nick/view/$msgid"|html2text;
+  echo; }

@@ -1,0 +1,66 @@
+#!/bin/sh
+
+_copyright(){ echo "
+  ozh lightweight shell extensions
+  2008-2014 - anx @ ulzq de (Sebastian Glaser)
+  2008-2014 - fly @ ulzq de
+  Licensed under GNU GPL v3"; }
+_license(){ echo "
+  ozh is free software; you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation; either version 2, or (at your option)
+  any later version.
+
+  ozh is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with this software; see the file COPYING.  If not, write to
+  the Free Software Foundation, Inc., 59 Temple Place, Suite 330,
+  Boston, MA 02111-1307 USA
+
+  http://www.gnu.org/licenses/gpl.html"; }
+
+export hbname=hakbins
+export hbp="/home/hakt0r/www/$hbname"
+export hbhost=hakt0r.de
+export hbrpath="http://$hbhost/$hbname"
+export hbed="$HOME/.$hbname/.last-editor"
+hb-commit() {
+	local CUSER=''
+	mkdir -p $HOME/.$hbname
+	if [ -z $2 ]; then CUSER=`whoami`; else CUSER=$2; fi
+	if [ -f "$HOME/.$hbname/$1" ]; then
+	 bzip2 -c "$HOME/.$hbname/$1" > /tmp/$1.bz2
+	 chmod a+rx "$HOME/.$hbname/$1"
+	 ssh $CUSER@$hbhost "if [ -f $hbp/$1 ]; then ls -1 $hbp > $hbp/.files; cp $hbp/$1.bz2 > $hbp/.arc/$1-`date | tr ' ' '_'`-nuby-$CUSER.bz2; rm $hbp/$1.bz2; else ls -1 $hbp > $hbp/.files; echo $1 >> $hbp/.files; fi"
+	 scp "/tmp/$1.bz2" "$CUSER@$hbhost:$hbp/"
+	 return
+	fi
+	 echo $0: no such file: $1
+	}
+_hb-commit_help() { echo "[1:script] commits script to hakbins repository";}
+
+hb-load() {
+	mkdir -p $HOME/.$hbname
+	chdir $HOME/.$hbname
+	if [ -f "$HOME/.$hbname/$1" ]; then mv "$HOME/.$hbname/$1" "$HOME/.$hbname/$1.old";  fi
+	wget -nv -O - "$hbrpath/$1.bz2" > /tmp/$1.bz2
+	bunzip2 -c /tmp/$1.bz2 > "$HOME/.$hbname/$1"
+	chmod +x "$HOME/.$hbname/$1"
+	rm /tmp/$1.bz2
+	if [ -f "$HOME/.$hbname/$1" ]; then if [ -f "$HOME/.$hbname/$1.old" ]; then rm "$HOME/.$hbname/$1.old"; fi else  echo error, restoring old version of $1; mv "$HOME/.$hbname/$1.old" "$HOME/.$hbname/$1" ;  fi
+	chdir -
+}
+_hb-load_help() { echo "[1:script] load script from hakbins repository";}
+hb-get-all() {
+	if [ -z $1 ]; then CUSER=`whoami`; else CUSER=$1; fi
+	
+	for f in `wget -nv -O - "$hbrpath/.files"` ; do
+	 if [ "$f" = "." ] || [ "$f" = ".." ]; then continue; fi
+	 hb-load "`echo $f|sed -e 's/.bz2//g'`"
+	done
+}
+_hb-get-all_help() { echo "load all scripts from hakbins repository";}

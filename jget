@@ -1,0 +1,67 @@
+#!/bin/sh
+
+_copyright(){ echo "
+  ozh lightweight shell extensions
+  2008-2014 - anx @ ulzq de (Sebastian Glaser)
+  2008-2014 - fly @ ulzq de
+  Licensed under GNU GPL v3"; }
+_license(){ echo "
+  ozh is free software; you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation; either version 2, or (at your option)
+  any later version.
+
+  ozh is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with this software; see the file COPYING.  If not, write to
+  the Free Software Foundation, Inc., 59 Temple Place, Suite 330,
+  Boston, MA 02111-1307 USA
+
+  http://www.gnu.org/licenses/gpl.html"; }
+
+jget(){
+	app_depend curl
+	export INTERNET_CONNECTION=$([ -f /tmp/`whoami`-hnet ] && echo 0 || echo 1);
+
+	local curl_args="";
+	if [ "$1" = "--" ];then
+		shift;
+		while [ "$1" != "--" ];do
+			curl_args="$curl_args $1";
+			shift;
+		done
+	fi
+
+	local result="";
+	local url="$1";shift
+	local http_status="";
+	local http_query="";
+
+	while [ $# -gt 1 ];do
+		http_query="$http_query --data-urlencode '$1=$2'";shift 2
+	done
+
+  	if [ "$INTERNET_CONNECTION" -eq 0 ];then
+		result=$(curl ${curl_args} ${http_query} -si "$url" 2>/dev/null)
+		http_status=$(( $(echo "$result"|head -n1|sed 's/^HTTP\/... //'|cut -f 1 -d ' ') + 0 ));
+		http_modified=$(echo "$result" |grep -P "^Last-Modified:"|sed "s/Last-Modified: //");
+
+		if [ ! -z "$http_status" ];then
+			if test "$http_status" -eq 200;then
+				echo $result \
+				| sed '1,/^.$/d' \
+				| tail -n -1 \
+				| tr , "\n" \
+				| tr -d '{}"' \
+				| sed 's/\\//g;' \
+				| sed 's/^[^:]\+://g';
+			fi
+		else
+			echo fail $result;
+			return 1;
+		fi;
+	fi;}
