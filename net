@@ -23,7 +23,7 @@ _license(){ echo "
 
   http://www.gnu.org/licenses/gpl.html"; }
 
-[ -n "$OZH_INSTALL" ] && { oz install  +lib +prefix net proxy trashmail; }
+[ -n "$OZH_INSTALL" ] && { _install_net(){ oz install  +lib +prefix net proxy trashmail;}; }
 [ -n "$OZH_HELP" ] && {
   _help_net(){         echo "isIp ipAnd ipAdd ipSub ipInv netbase netfirst netlast netbcast cidr2mask sameSubnet devip devbcast ipAnd sameSubnet freeport ws sniftp snifhttp rstblock excport blockip unblockip portsc sb sniftp randomip randomhost randomdns dnstest ssh_copy_id svnc legitmac ende deen defr frde killport icqid recon_wget yt2mp3 natrouter finduplink otrsecret ssynergyc asynergy set_gateway set_dns sdns ajwatch ipof getip dwiki mac macvend webserv uopen"; }
   _help_ajwatch(){     echo "watch aljazeera EN"; }
