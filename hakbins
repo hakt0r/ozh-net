@@ -60,7 +60,7 @@ hb-get-all() {
 	
 	for f in `wget -nv -O - "$hbrpath/.files"` ; do
 	 if [ "$f" = "." ] || [ "$f" = ".." ]; then continue; fi
-	 hb-load "`echo $f|sed -e 's/.bz2//g'`"
+	 hb-load "`echo $f|Bsed -e 's/.bz2//g'`"
 	done
 }
 _hb-get-all_help() { echo "load all scripts from hakbins repository";}

@@ -28,7 +28,7 @@ tmail_tmde(){
   echo -n "Checking mail for "; printf "$bgreen$white$bold $1@trash-mail.com $RN"
   export http_proxy=$pr
   local nick="$1"
-  msgid=$(wget -q -O- "http://trash-mail.com/index.php?ln=p&mail=$nick"|grep -o 'mid=[0-9]\+&tid=[0-9]\+'|head -n1)
+  msgid=$(wget -q -O- "http://trash-mail.com/index.php?ln=p&mail=$nick"|Bgrep -o 'mid=[0-9]\+&tid=[0-9]\+'|head -n1)
   wget -q -O- "http://trash-mail.com/index.php?ln=p&mail=$nick&$msgid"|html2text ; }
 
 tmail_tmib(){
@@ -36,19 +36,19 @@ tmail_tmib(){
   pr="$(try_prox)"
   export http_proxy=$pr
   local nick="$1"
-  msgid=$(wget -q -O- "http://www.tempinbox.com/cgi-bin/checkmail.pl?username=$nick&button=Check+Mail&terms=on&large=1" | grep -o '?id=[0-9]\+' |cut -d "=" -f2)
+  msgid=$(wget -q -O- "http://www.tempinbox.com/cgi-bin/checkmail.pl?username=$nick&button=Check+Mail&terms=on&large=1" | Bgrep -o '?id=[0-9]\+' |cut -d "=" -f2)
   wget -q -O- "http://www.tempinbox.com/cgi-bin/viewmail.pl?id=$msgid" |html2text ; }
 
 tmail_mytm(){
   echo -n "Checking mail for "; printf "$bgreen$white$bold $1@mailmetrash.com $RN"
   local nick="$1"
-  msgid="$(wget -q -O - "http://www.mytrashmail.com/myTrashMail_inbox.aspx?email=$nick"| grep -o '&id=[0-9]\+'|head -n1|cut -d '=' -f2)"
+  msgid="$(wget -q -O - "http://www.mytrashmail.com/myTrashMail_inbox.aspx?email=$nick"| Bgrep -o '&id=[0-9]\+'|head -n1|cut -d '=' -f2)"
   wget -q -O- "http://www.mytrashmail.com/MyTrashMail_message.aspx?email=$nick&id=$msgid"|html2text; }
 
 tmail_mnto(){
   echo -n "Checking mail for "; printf "$bgreen$white$bold $1@mailinator.com $RN"
   local nick="$1"
-  msgid=$(wget -q -O- "http://mailinator.com/maildir.jsp?email=$nick&x=0&y=0"|grep -o 'msgid=[0-9]\+'|head -n1|cut -d '=' -f2)
+  msgid=$(wget -q -O- "http://mailinator.com/maildir.jsp?email=$nick&x=0&y=0"|Bgrep -o 'msgid=[0-9]\+'|head -n1|cut -d '=' -f2)
   wget -q -O- "http://mailinator.com/displayemail.jsp?email=$nick&msgid=$msgid"|html2text;
   echo; }
 
@@ -59,6 +59,6 @@ tmail_dspm(){
   pr="$(try_prox)"
   export http_proxy=$pr
   local nick="$1"
-  msgid="$(wget -q -O - "http://disposeamail.com/inbox/$nick"| grep -o 'view/[0-9]\+'|head -n$m|cut -d '/' -f2)"
+  msgid="$(wget -q -O - "http://disposeamail.com/inbox/$nick"| Bgrep -o 'view/[0-9]\+'|head -n$m|cut -d '/' -f2)"
   wget -q -O- "http://disposeamail.com/inbox/$nick/view/$msgid"|html2text;
   echo; }

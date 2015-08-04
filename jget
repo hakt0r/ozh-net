@@ -47,18 +47,18 @@ jget(){
 
   	if [ "$INTERNET_CONNECTION" -eq 0 ];then
 		result=$(curl ${curl_args} ${http_query} -si "$url" 2>/dev/null)
-		http_status=$(( $(echo "$result"|head -n1|sed 's/^HTTP\/... //'|cut -f 1 -d ' ') + 0 ));
-		http_modified=$(echo "$result" |grep -P "^Last-Modified:"|sed "s/Last-Modified: //");
+		http_status=$(( $(echo "$result"|head -n1|Bsed 's/^HTTP\/... //'|cut -f 1 -d ' ') + 0 ));
+		http_modified=$(echo "$result" |Bgrep -P "^Last-Modified:"|Bsed "s/Last-Modified: //");
 
 		if [ ! -z "$http_status" ];then
 			if test "$http_status" -eq 200;then
 				echo $result \
-				| sed '1,/^.$/d' \
+				| Bsed '1,/^.$/d' \
 				| tail -n -1 \
 				| tr , "\n" \
 				| tr -d '{}"' \
-				| sed 's/\\//g;' \
-				| sed 's/^[^:]\+://g';
+				| Bsed 's/\\//g;' \
+				| Bsed 's/^[^:]\+://g';
 			fi
 		else
 			echo fail $result;
