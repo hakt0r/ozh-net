@@ -35,12 +35,12 @@ cget(){
   # or next update is intended ( x -nt y )
   if [ ! -f "$p/$key.updated" ] || [ ! -f "$p/$key" ] || [ "$p/$key.updated" -nt "$p/$key" ];then
     result=$(curl -H "If-Modified-Since: $last_change" -si "$1" 2>/dev/null)
-    http_status=$(( $(echo "$result"|head -n1|Bsed 's/^HTTP\/... //'|cut -f 1 -d ' ') + 0 ));
-    http_modified=$(echo "$result" |Bgrep -P "^Last-Modified:"|Bsed "s/Last-Modified: //");
+    http_status=$(( $(echo "$result"|head -n1|busybox sed 's/^HTTP\/... //'|cut -f 1 -d ' ') + 0 ));
+    http_modified=$(echo "$result" |busybox grep -P "^Last-Modified:"|busybox sed "s/Last-Modified: //");
     if [ ! -z "$http_status" ];then
       if test "$http_status" -eq 200;then
         [ -z "$http_modified" ] && echo -n "$http_modified" > "$p/$key.updated"
-        echo "$result"|Bsed '1,/^.$/d' > "$p/$key"
+        echo "$result"|busybox sed '1,/^.$/d' > "$p/$key"
         # after this the timestamp of the cache file will be the expiry time
         touch --date="1970-01-01 $(( $(date +"%s") + 60)) sec" "$p/$key";
         update="true";
