@@ -70,7 +70,7 @@ _license(){ echo "
   _help_yt2mp3(){      echo "download a youtube video and convert to mp3"; }
 }
 
-isIp(){ echo -n "$*"|Bgrep -q '^[0-9]\+.[0-9]\+.[0-9]\+.[0-9]\+$' && return 0 || return 1; }
+isIp(){ echo -n "$*"|busybox grep -q '^[0-9]\+.[0-9]\+.[0-9]\+.[0-9]\+$' && return 0 || return 1; }
 
 ipAnd(){
   [ -z "$1" ] && return 1
@@ -109,7 +109,7 @@ ipInv(){
 netbase(){
   ip=$(echo $1|cut -d / -f 1)
   cidr=$(echo $1|cut -d / -f 2)
-  echo "$cidr" | Bgrep -q '[0-9]\+.[0-9]\+.[0-9]\+.[0-9]\+' && mask=$cidr || mask=$(cidr2mask $cidr)
+  echo "$cidr" | busybox grep -q '[0-9]\+.[0-9]\+.[0-9]\+.[0-9]\+' && mask=$cidr || mask=$(cidr2mask $cidr)
   echo $(ipAnd $ip $mask); }
 
 netfirst(){
@@ -139,23 +139,23 @@ esac; }
 
 sameSubnet(){ [ "$(ipAnd $1 $3)" = "$(ipAnd $2 $3)" ] && return 0|| return 1; }
 
-netdevs(){ cat /proc/net/dev | Bawk '/:/{gsub(/:/,"");print $1}'; }
+netdevs(){ cat /proc/net/dev | busybox awk '/:/{gsub(/:/,"");print $1}'; }
 
-devip(){ Bifconfig $1| Bgrep -o "inet addr:[0-9]\+.[0-9]\+.[0-9]\+.[0-9]\+"|cut -d : -f2; }
+devip(){ Bifconfig $1| busybox grep -o "inet addr:[0-9]\+.[0-9]\+.[0-9]\+.[0-9]\+"|cut -d : -f2; }
 
-devmask(){ Bifconfig $1| Bgrep -o "Mask:[0-9]\+.[0-9]\+.[0-9]\+.[0-9]\+" |cut -d : -f2; }
+devmask(){ Bifconfig $1| busybox grep -o "Mask:[0-9]\+.[0-9]\+.[0-9]\+.[0-9]\+" |cut -d : -f2; }
 
-devbcast(){ Bifconfig $1| Bgrep -o "Bcast:[0-9]\+.[0-9]\+.[0-9]\+.[0-9]\+"|cut -d : -f2; }
+devbcast(){ Bifconfig $1| busybox grep -o "Bcast:[0-9]\+.[0-9]\+.[0-9]\+.[0-9]\+"|cut -d : -f2; }
 
-devhostips() { nmap -sP $(netbase $(devip $1)/$(devmask $1))/$(mask2cidr $(devmask $1)) | Bgrep'Nmap scan report for' | Bgrep -o '[0-9]\+.[0-9]\+.[0-9]\+.[0-9]\+'; }
+devhostips() { nmap -sP $(netbase $(devip $1)/$(devmask $1))/$(mask2cidr $(devmask $1)) | busybox grep'Nmap scan report for' | busybox grep -o '[0-9]\+.[0-9]\+.[0-9]\+.[0-9]\+'; }
 
 devhosts() {
   nmap -sP $(netbase $(devip $1)/$(devmask $1))/$(mask2cidr $(devmask $1)) |
-    Bgrep'Nmap scan report for' | Bgrep -o '[0-9]\+.[0-9]\+.[0-9]\+.[0-9]\+' | while read line; do
+    busybox grep'Nmap scan report for' | busybox grep -o '[0-9]\+.[0-9]\+.[0-9]\+.[0-9]\+' | while read line; do
       echo "$line $(host.resolve $line).$1 # devhosts"
     done; }
 
-host.resolve() { nslookup $1 | Bawk '{l=$NF}END{sub(/\..*$/,"",l);print l}'; }
+host.resolve() { nslookup $1 | busybox awk '{l=$NF}END{sub(/\..*$/,"",l);print l}'; }
 
 ipAnd(){ # 1:ip 2:ip
   [ -z "$1" ] && return 1
@@ -174,12 +174,12 @@ freeport(){
   [ $(whoami) = "root" ] && port=1
   [ ! -z "$1" ] && [ $1 -gt 0 ] && port=$(( $1 ))
   while true; do
-    if ! netstat -ant | BgrepLISTEN | Bgrep -q ":$port"; then echo "$port" && return 0;fi
+    if ! netstat -ant | busybox grepLISTEN | busybox grep -q ":$port"; then echo "$port" && return 0;fi
     port=$(( $port + 1 ));done; }
 
 ws(){
   app_exists html2text || app_depend html2text;
-  wget -q http://$1 -O-|html2text|Bgrep -vP '^[ *]+'|Bgrep -vP '^$'|Bgrep -vP '\['; }
+  wget -q http://$1 -O-|html2text|busybox grep -vP '^[ *]+'|busybox grep -vP '^$'|busybox grep -vP '\['; }
 
 sniftp(){
   app_exists ngrep || app_depend ngrep;
@@ -258,7 +258,7 @@ randomdns(){
     sleep 3;
   done; }
 
-dnstest(){ sudo nmap -sU -p 53 $1 2>&1 | Bgrep -q open && echo $ip > .randomdns; }
+dnstest(){ sudo nmap -sU -p 53 $1 2>&1 | busybox grep -q open && echo $ip > .randomdns; }
 
 ssh_copy_id(){
   ID_FILE="${HOME}/.ssh/id_rsa.pub"
@@ -319,27 +319,27 @@ svnc(){
   echo Connecting to localhost :590$LOCAL
   vinagre localhost:590$LOCAL; }
 
-legitmac(){ mac | Bsed 's/^../00/'; }
+legitmac(){ mac | busybox sed 's/^../00/'; }
 
 ende(){
   lng1="en";lng2="de";
-  t=$(echo "$@" |Bsed "s/ /+/");
-  wget -qO- "http://ajax.googleapis.com/ajax/services/language/translate?v=1.0&q=$t&langpair=$lng1|$lng2" | Bsed 's/.*"translatedText":"\([^"]*\)".*}/\1\n/'; }
+  t=$(echo "$@" |busybox sed "s/ /+/");
+  wget -qO- "http://ajax.googleapis.com/ajax/services/language/translate?v=1.0&q=$t&langpair=$lng1|$lng2" | busybox sed 's/.*"translatedText":"\([^"]*\)".*}/\1\n/'; }
 
 deen(){
  lng1="de";lng2="en";
- t=$(echo "$@" |Bsed "s/ /+/");
- wget -qO- "http://ajax.googleapis.com/ajax/services/language/translate?v=1.0&q=$t&langpair=$lng1|$lng2" | Bsed 's/.*"translatedText":"\([^"]*\)".*}/\1\n/'; }
+ t=$(echo "$@" |busybox sed "s/ /+/");
+ wget -qO- "http://ajax.googleapis.com/ajax/services/language/translate?v=1.0&q=$t&langpair=$lng1|$lng2" | busybox sed 's/.*"translatedText":"\([^"]*\)".*}/\1\n/'; }
 
 defr(){
  lng1="de";lng2="fr";
- t=$(echo "$@" |Bsed "s/ /+/");
- wget -qO- "http://ajax.googleapis.com/ajax/services/language/translate?v=1.0&q=$t&langpair=$lng1|$lng2" | Bsed 's/.*"translatedText":"\([^"]*\)".*}/\1\n/'; }
+ t=$(echo "$@" |busybox sed "s/ /+/");
+ wget -qO- "http://ajax.googleapis.com/ajax/services/language/translate?v=1.0&q=$t&langpair=$lng1|$lng2" | busybox sed 's/.*"translatedText":"\([^"]*\)".*}/\1\n/'; }
 
 frde(){
   lng1="fr";lng2="de";
-  t=$(echo "$@" |Bsed "s/ /+/");
-  wget -qO- "http://ajax.googleapis.com/ajax/services/language/translate?v=1.0&q=$t&langpair=$lng1|$lng2" | Bsed 's/.*"translatedText":"\([^"]*\)".*}/\1\n/'; }
+  t=$(echo "$@" |busybox sed "s/ /+/");
+  wget -qO- "http://ajax.googleapis.com/ajax/services/language/translate?v=1.0&q=$t&langpair=$lng1|$lng2" | busybox sed 's/.*"translatedText":"\([^"]*\)".*}/\1\n/'; }
 
 killport(){
  _task "killing process on tcp port $1";
@@ -348,8 +348,8 @@ killport(){
 
 icqid(){
   wget -q http://www.icq.com/people/"$1" -O /tmp/icqid.tmp 2>/dev/null
-    FN=$(cat /tmp/icqid.tmp |Bgrep"<title>"|Bsed 's/<[^>]*>//g'|Bsed -e "s/\ \-\ ICQ.com//g")
-  NI=`cat /tmp/icqid.tmp |Bgrep'id="shortprofile' -A3|tail -n1|Bsed 's/<[^>]*>//g'|Bsed 's/^[  ]*//'`
+    FN=$(cat /tmp/icqid.tmp |busybox grep"<title>"|busybox sed 's/<[^>]*>//g'|busybox sed -e "s/\ \-\ ICQ.com//g")
+  NI=`cat /tmp/icqid.tmp |busybox grep'id="shortprofile' -A3|tail -n1|busybox sed 's/<[^>]*>//g'|busybox sed 's/^[  ]*//'`
   rm  /tmp/icqid.tmp
   echo "Full Name: $FN"
   echo "Nick: $NI"; }
@@ -398,14 +398,14 @@ natrouter(){
       $0 start;;
   esac; }
 
-finduplink(){ for i in $(Bifconfig |Bgrepencap |cut -f 1 -d ' '|Bgrep -v lo); do if ping -I $i -c 1 -w 20 8.8.8.8 > /dev/null; then echo $i; exit 0; fi done; }
+finduplink(){ for i in $(Bifconfig |busybox grepencap |cut -f 1 -d ' '|busybox grep -v lo); do if ping -I $i -c 1 -w 20 8.8.8.8 > /dev/null; then echo $i; exit 0; fi done; }
 
 otrsecret(){
   _task "generating random otr secret passphrase"
   PWLEN=50
   FILE=~/.secret.otr
   HOST=$1
-  strings /dev/urandom | Bgrep -o '[[:alnum:]][[:punct:]]' |head -n $PWLEN | tr -d '\n'> $FILE;
+  strings /dev/urandom | busybox grep -o '[[:alnum:]][[:punct:]]' |head -n $PWLEN | tr -d '\n'> $FILE;
   _done;
   echo -n "Your passphrase:"
   cat $FILE
@@ -438,7 +438,7 @@ asynergy(){
  killport $port
  t -t "starting synergy server" synergys -c $CONFFILE;
  REMOTE_SCRIPT="while killall -9 synergyc > /dev/null 2>&1; do sleep 0.3; done; synergyc --display :0.0 ${HOST}${DOMAIN};"
- for i in $(cat $CONFFILE | Bgrep -P ':$' |tr -d ' :'|sort |uniq |Bgrep -v -P '\n$'|Bgrep -v `hostname`); do
+ for i in $(cat $CONFFILE | busybox grep -P ':$' |tr -d ' :'|sort |uniq |busybox grep -v -P '\n$'|busybox grep -v `hostname`); do
   h=${i}${DOMAIN}
   _task "contatcting $h"
   if ping -c1 -w2 $h > /dev/null 2>&1; then _done;
@@ -479,15 +479,15 @@ ajwatch(){
   app_depend mplayer
   rtmpdump -v -r rtmp://livestfslivefs.fplive.net/livestfslive-live/ -y "aljazeera_en_veryhigh" -a "aljazeeraflashlive-live" -o -| mplayer -; }
 
-ipof(){ nslookup $1|Bgrep -o '[0-9.]\+'|tail -n1; }
+ipof(){ nslookup $1|busybox grep -o '[0-9.]\+'|tail -n1; }
 
 getip(){ curl ifconfig.me 2>/dev/null; }
 
 dwiki(){ dig +short txt "$*".wp.dg.cx; }
 
-mac(){ 2>/dev/null dd if=/dev/urandom bs=1 count=6 | od -t x1 | Bsed '2d;s/^0\+ //;s/ /:/g'; }
+mac(){ 2>/dev/null dd if=/dev/urandom bs=1 count=6 | od -t x1 | busybox sed '2d;s/^0\+ //;s/ /:/g'; }
 
-macvend(){ curl -s http://standards.ieee.org/regauth/oui/oui.txt | Bgrep$1; }
+macvend(){ curl -s http://standards.ieee.org/regauth/oui/oui.txt | busybox grep$1; }
 
 webserv(){ python -m SimpleHTTPServer 42023 "$1"; }
 
@@ -499,7 +499,7 @@ uopen(){ # PORTME
   else
     FILE=$1
     MIME=$(curl --head $FILE | \
-           BgrepContent-Type | \
+           busybox grepContent-Type | \
            cut -d ' ' -f 2 | \
            cut -d\; -f 1)
     MIME=${MIME%$'\r'}
@@ -509,17 +509,17 @@ uopen(){ # PORTME
 curltor() { if checktor; then curl --socks5 127.0.0.1:9050 $@; fi; }
 checktor() { 
   _task "Checking if tor works (use curltor for further torring)"
-  if [ "$(curl -s --socks5 127.0.0.1:9050 check.torproject.org |Bgrep'Congratulations. Your browser is configured to use Tor.')" != "" ]; then _done; return 0; else _fail; return 1; fi; }
+  if [ "$(curl -s --socks5 127.0.0.1:9050 check.torproject.org |busybox grep'Congratulations. Your browser is configured to use Tor.')" != "" ]; then _done; return 0; else _fail; return 1; fi; }
 
-urlencode() { cat - | Bsed 's:%:%25:g;s: :%20:g;s:<:%3C:g;s:>:%3E:g;s:#:%23:g;s:{:%7B:g;s:}:%7D:g;s:|:%7C:g;s:\\:%5C:g;s:\^:%5E:g;s:~:%7E:g;s:\[:%5B:g;s:\]:%5D:g;s:`:%60:g;s:;:%3B:g;s:/:%2F:g;s:?:%3F:g;s^:^%3A^g;s:@:%40:g;s:=:%3D:g;s:&:%26:g;s:\$:%24:g;s:\!:%21:g;s:\*:%2A:g'; }
-urldecode() { cat - | Bsed 's:%25:%:g;s: :%20:g;s:%3C:<:g;s:%3E:>:g;s:%23:#:g;s:%7B:{:g;s:%7D:}:g;s:%7C:|:g;s:%5C:\:g;s:%5E:\^:g;s:%7E:~:g;s:%5B:\[:g;s:%5D:\]:g;s:%60:`:g;s:%3B:;:g;s:%2F:/:g;s:%3F:?:g;s:^%3A^:^:g;s:%40:@:g;s:%3D:=:g;s:%26:&:g;s:%24:\$:g;s:%21:\!:g;s:%2A:\*:g'; }
+urlencode() { cat - | busybox sed 's:%:%25:g;s: :%20:g;s:<:%3C:g;s:>:%3E:g;s:#:%23:g;s:{:%7B:g;s:}:%7D:g;s:|:%7C:g;s:\\:%5C:g;s:\^:%5E:g;s:~:%7E:g;s:\[:%5B:g;s:\]:%5D:g;s:`:%60:g;s:;:%3B:g;s:/:%2F:g;s:?:%3F:g;s^:^%3A^g;s:@:%40:g;s:=:%3D:g;s:&:%26:g;s:\$:%24:g;s:\!:%21:g;s:\*:%2A:g'; }
+urldecode() { cat - | busybox sed 's:%25:%:g;s: :%20:g;s:%3C:<:g;s:%3E:>:g;s:%23:#:g;s:%7B:{:g;s:%7D:}:g;s:%7C:|:g;s:%5C:\:g;s:%5E:\^:g;s:%7E:~:g;s:%5B:\[:g;s:%5D:\]:g;s:%60:`:g;s:%3B:;:g;s:%2F:/:g;s:%3F:?:g;s:^%3A^:^:g;s:%40:@:g;s:%3D:=:g;s:%26:&:g;s:%24:\$:g;s:%21:\!:g;s:%2A:\*:g'; }
 
 lanhosts(){
   local dev= install=false tmpfile=/dev/stdout
   [ "x$1" = "x-i" ] && local install=true tmpfile=$(mktemp)
-  ( cat /etc/hosts | Bawk '!/#lanhost/'
-  netdevs | Bgrep -v '^lo$' | while read dev; do
-    nmap -sP $(devip "$dev")/24 2>/dev/null | Bawk \
+  ( cat /etc/hosts | busybox awk '!/#lanhost/'
+  netdevs | busybox grep -v '^lo$' | while read dev; do
+    nmap -sP $(devip "$dev")/24 2>/dev/null | busybox awk \
       '(/scan report.*\(/){gsub(/[()]/,"",$0);sub(/\..*/,"",$5);print $6,$5".'"$dev"' #lanhost"}'
   done; ) >"$tmpfile"
   $install && sudo cp "$tmpfile" /etc/hosts; }
