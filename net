@@ -143,23 +143,46 @@ netdevs(){ cat /proc/net/dev | busybox awk '/:/{gsub(/:/,"");print $1}'; }
 
 devip(){ busybox ip address show dev $1 scope global | grep inet | awk '{gsub("\\/.*","",$2);print $2;exit(0);}'; }
 devips(){ busybox ip address show dev $1 scope global | grep inet | awk '{gsub("\\/.*","",$2);print $2}'; }
-
-devmask(){ cidr2mask $(busybox ip address show dev $1 scope global | grep inet | awk '{gsub(".*\\/","",$2);print $2;exit(0);}'); }
-
-devbcast(){ Bifconfig $1| busybox grep -io "Bcast[: ][0-9]\+.[0-9]\+.[0-9]\+.[0-9]\+"|cut -d : -f2; }
+devcidr(){ busybox ip address show dev $1 scope global | grep inet | awk '{gsub(".*\\/","",$2);print $2;exit(0);}'; }
+devbcast(){ busybox ip address show dev $1 scope global | grep inet | awk '{print $4;exit(0);}'; }
+devmask(){ cidr2mask $(devcidr $1); }
 
 devhostips() {
-  nmap -sP $(netbase $(devip $1)/$(devmask $1))/$(mask2cidr $(devmask $1)) |
+  mask=$(devmask $1)
+  cidr=$(devmask $1)
+  LANG=C nmap -sP $(netbase $(devip $1)/$(devmask $1))/$(mask2cidr $(devmask $1)) |
   busybox grep 'Nmap scan report for' |
   busybox grep -o '[0-9]\+.[0-9]\+.[0-9]\+.[0-9]\+'; }
 
 devhosts() {
-  nmap -sP $(netbase $(devip $1)/$(devmask $1))/$(mask2cidr $(devmask $1)) |
-    busybox grep'Nmap scan report for' | busybox grep -o '[0-9]\+.[0-9]\+.[0-9]\+.[0-9]\+' | while read line; do
-      echo "$line $(host.resolve $line).$1 # devhosts"
+  ip=$(devip $1)
+  [ -z "$ip" ] && return 0
+  LANG=C nmap -sP $(netbase $(devip $1)/$(devmask $1))/$(mask2cidr $(devmask $1)) |
+    busybox grep 'Nmap scan report for' | busybox grep -o '[0-9]\+.[0-9]\+.[0-9]\+.[0-9]\+' | while read line; do
+      echo "$line $(resolve_host $line).$1 # devhosts"
     done; }
 
-host.resolve() { nslookup $1 | busybox awk '{l=$NF}END{sub(/\..*$/,"",l);print l}'; }
+lanhosts(){
+  local dev= install=false tmpfile=/dev/stdout
+  [ "x$1" = "x-i" ] && local install=true tmpfile=$(mktemp)
+  ( cat /etc/hosts | busybox awk '!/# devhosts/'
+  netdevs | busybox grep -v '^lo$' | while read dev; do
+    echo "# $dev"
+    devhosts $dev
+  done; ) >"$tmpfile"
+  $install && sudo cp "$tmpfile" /etc/hosts; }
+
+addhost(){
+  local tmpfile=$(mktemp)
+  ( cat /etc/hosts | busybox awk "!/#myhost $2/" | busybox awk "!/^$1/"
+    echo "$@ #myhost $2"
+  ) > "$tmpfile"
+  sudo cp "$tmpfile" /etc/hosts; }
+
+resolve_host() {
+  host $1 | busybox grep -o '[0-9]\+.[0-9]\+.[0-9]\+.[0-9]\+'
+  # nslookup $1 | busybox awk '{l=$NF}END{sub(/\..*$/,"",l);print l}';
+}
 
 ipAnd(){ # 1:ip 2:ip
   [ -z "$1" ] && return 1
@@ -517,16 +540,6 @@ checktor() {
 
 urlencode() { cat - | busybox sed 's:%:%25:g;s: :%20:g;s:<:%3C:g;s:>:%3E:g;s:#:%23:g;s:{:%7B:g;s:}:%7D:g;s:|:%7C:g;s:\\:%5C:g;s:\^:%5E:g;s:~:%7E:g;s:\[:%5B:g;s:\]:%5D:g;s:`:%60:g;s:;:%3B:g;s:/:%2F:g;s:?:%3F:g;s^:^%3A^g;s:@:%40:g;s:=:%3D:g;s:&:%26:g;s:\$:%24:g;s:\!:%21:g;s:\*:%2A:g'; }
 urldecode() { cat - | busybox sed 's:%25:%:g;s: :%20:g;s:%3C:<:g;s:%3E:>:g;s:%23:#:g;s:%7B:{:g;s:%7D:}:g;s:%7C:|:g;s:%5C:\:g;s:%5E:\^:g;s:%7E:~:g;s:%5B:\[:g;s:%5D:\]:g;s:%60:`:g;s:%3B:;:g;s:%2F:/:g;s:%3F:?:g;s:^%3A^:^:g;s:%40:@:g;s:%3D:=:g;s:%26:&:g;s:%24:\$:g;s:%21:\!:g;s:%2A:\*:g'; }
-
-lanhosts(){
-  local dev= install=false tmpfile=/dev/stdout
-  [ "x$1" = "x-i" ] && local install=true tmpfile=$(mktemp)
-  ( cat /etc/hosts | busybox awk '!/#lanhost/'
-  netdevs | busybox grep -v '^lo$' | while read dev; do
-    nmap -sP $(devip "$dev")/24 2>/dev/null | busybox awk \
-      '(/scan report.*\(/){gsub(/[()]/,"",$0);sub(/\..*/,"",$5);print $6,$5".'"$dev"' #lanhost"}'
-  done; ) >"$tmpfile"
-  $install && sudo cp "$tmpfile" /etc/hosts; }
 
 ifreset(){
   ifdown $1
