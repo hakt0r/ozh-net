@@ -2,8 +2,8 @@
 
 _copyright(){ echo "
   ozh lightweight shell extensions
-  2008-2014 - anx @ ulzq de (Sebastian Glaser)
-  2008-2014 - fly @ ulzq de
+  2008-2016 - anx @ ulzq de (Sebastian Glaser)
+  2008-2016 - fly @ ulzq de
   Licensed under GNU GPL v3"; }
 _license(){ echo "
   ozh is free software; you can redistribute it and/or modify
@@ -213,9 +213,9 @@ sb(){
  t=$(cget http://hakt0r.de/zsh/msg/shoutbox)
  echo $t
  if [ "$1" != "post" ] || [ "$1" = "" ]; then return; else shift; fi
- if [ "$2" = "" ]; then 
+ if [ "$2" = "" ]; then
   echo -n shout:
-  read m; 
+  read m;
  else m="$@"; fi
  nt="$t\n$white$(date +"%m-%d %H%M") $green$(whoami)@$red$(hostname -s)$R: $(echo $m)"
  echo $nt > $tf
@@ -275,7 +275,7 @@ ssh_copy_id(){
         else
           ID_FILE="$1.pub"
         fi
-        shift 
+        shift
       fi
       ;;
     "-p")
@@ -507,7 +507,7 @@ uopen(){ # PORTME
   fi; }
 
 curltor() { if checktor; then curl --socks5 127.0.0.1:9050 $@; fi; }
-checktor() { 
+checktor() {
   _task "Checking if tor works (use curltor for further torring)"
   if [ "$(curl -s --socks5 127.0.0.1:9050 check.torproject.org |busybox grep'Congratulations. Your browser is configured to use Tor.')" != "" ]; then _done; return 0; else _fail; return 1; fi; }
 
@@ -523,3 +523,8 @@ lanhosts(){
       '(/scan report.*\(/){gsub(/[()]/,"",$0);sub(/\..*/,"",$5);print $6,$5".'"$dev"' #lanhost"}'
   done; ) >"$tmpfile"
   $install && sudo cp "$tmpfile" /etc/hosts; }
+
+ifreset(){
+  ifdown $1
+  ifup $1
+}

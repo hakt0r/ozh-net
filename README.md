@@ -2,8 +2,8 @@ ozh-net
 ========
 *net - network module for ozh*
 
-* 2008-2014 - anx @ ulzq de (Sebastian Glaser)
-* 2008-2014 - fly @ ulzq de
+* 2008-2016 - anx @ ulzq de (Sebastian Glaser)
+* 2008-2016 - fly @ ulzq de
 * Licensed under GNU GPL v3
 
 Installation
