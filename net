@@ -425,7 +425,10 @@ natrouter(){
       $0 start;;
   esac; }
 
-finduplink(){ for i in $(Bifconfig |busybox grepencap |cut -f 1 -d ' '|busybox grep -v lo); do if ping -I $i -c 1 -w 20 8.8.8.8 > /dev/null; then echo $i; exit 0; fi done; }
+finduplink(){
+  for i in $(Bifconfig |busybox grepencap |cut -f 1 -d ' '|busybox grep -v lo); do
+    if ping -I $i -c 1 -w 20 8.8.8.8 > /dev/null; then echo $i; exit 0; fi
+  done; }
 
 otrsecret(){
   _task "generating random otr secret passphrase"
