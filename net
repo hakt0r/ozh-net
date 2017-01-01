@@ -201,7 +201,7 @@ freeport(){
   [ $(whoami) = "root" ] && port=1
   [ ! -z "$1" ] && [ $1 -gt 0 ] && port=$(( $1 ))
   while true; do
-    if ! netstat -ant | busybox grepLISTEN | busybox grep -q ":$port"; then echo "$port" && return 0;fi
+    if ! netstat -ant | busybox grep LISTEN | busybox grep -q ":$port"; then echo "$port" && return 0;fi
     port=$(( $port + 1 ));done; }
 
 ws(){
@@ -375,8 +375,8 @@ killport(){
 
 icqid(){
   wget -q http://www.icq.com/people/"$1" -O /tmp/icqid.tmp 2>/dev/null
-    FN=$(cat /tmp/icqid.tmp |busybox grep"<title>"|busybox sed 's/<[^>]*>//g'|busybox sed -e "s/\ \-\ ICQ.com//g")
-  NI=`cat /tmp/icqid.tmp |busybox grep'id="shortprofile' -A3|tail -n1|busybox sed 's/<[^>]*>//g'|busybox sed 's/^[  ]*//'`
+    FN=$(cat /tmp/icqid.tmp |busybox grep "<title>"|busybox sed 's/<[^>]*>//g'|busybox sed -e "s/\ \-\ ICQ.com//g")
+  NI=`cat /tmp/icqid.tmp |busybox grep 'id="shortprofile' -A3|tail -n1|busybox sed 's/<[^>]*>//g'|busybox sed 's/^[  ]*//'`
   rm  /tmp/icqid.tmp
   echo "Full Name: $FN"
   echo "Nick: $NI"; }
@@ -426,7 +426,7 @@ natrouter(){
   esac; }
 
 finduplink(){
-  for i in $(Bifconfig |busybox grepencap |cut -f 1 -d ' '|busybox grep -v lo); do
+  for i in $(Bifconfig |busybox grep encap |cut -f 1 -d ' '|busybox grep -v lo); do
     if ping -I $i -c 1 -w 20 8.8.8.8 > /dev/null; then echo $i; exit 0; fi
   done; }
 
@@ -517,7 +517,7 @@ dwiki(){ dig +short txt "$*".wp.dg.cx; }
 
 mac(){ 2>/dev/null dd if=/dev/urandom bs=1 count=6 | od -t x1 | busybox sed '2d;s/^0\+ //;s/ /:/g'; }
 
-macvend(){ curl -s http://standards.ieee.org/regauth/oui/oui.txt | busybox grep$1; }
+macvend(){ curl -s http://standards.ieee.org/regauth/oui/oui.txt | busybox grep $1; }
 
 webserv(){ python -m SimpleHTTPServer 42023 "$1"; }
 
@@ -529,7 +529,7 @@ uopen(){ # PORTME
   else
     FILE=$1
     MIME=$(curl --head $FILE | \
-           busybox grepContent-Type | \
+           busybox grep Content-Type | \
            cut -d ' ' -f 2 | \
            cut -d\; -f 1)
     MIME=${MIME%$'\r'}
@@ -539,7 +539,7 @@ uopen(){ # PORTME
 curltor() { if checktor; then curl --socks5 127.0.0.1:9050 $@; fi; }
 checktor() {
   _task "Checking if tor works (use curltor for further torring)"
-  if [ "$(curl -s --socks5 127.0.0.1:9050 check.torproject.org |busybox grep'Congratulations. Your browser is configured to use Tor.')" != "" ]; then _done; return 0; else _fail; return 1; fi; }
+  if [ "$(curl -s --socks5 127.0.0.1:9050 check.torproject.org |busybox grep 'Congratulations. Your browser is configured to use Tor.')" != "" ]; then _done; return 0; else _fail; return 1; fi; }
 
 urlencode() { cat - | busybox sed 's:%:%25:g;s: :%20:g;s:<:%3C:g;s:>:%3E:g;s:#:%23:g;s:{:%7B:g;s:}:%7D:g;s:|:%7C:g;s:\\:%5C:g;s:\^:%5E:g;s:~:%7E:g;s:\[:%5B:g;s:\]:%5D:g;s:`:%60:g;s:;:%3B:g;s:/:%2F:g;s:?:%3F:g;s^:^%3A^g;s:@:%40:g;s:=:%3D:g;s:&:%26:g;s:\$:%24:g;s:\!:%21:g;s:\*:%2A:g'; }
 urldecode() { cat - | busybox sed 's:%25:%:g;s: :%20:g;s:%3C:<:g;s:%3E:>:g;s:%23:#:g;s:%7B:{:g;s:%7D:}:g;s:%7C:|:g;s:%5C:\:g;s:%5E:\^:g;s:%7E:~:g;s:%5B:\[:g;s:%5D:\]:g;s:%60:`:g;s:%3B:;:g;s:%2F:/:g;s:%3F:?:g;s:^%3A^:^:g;s:%40:@:g;s:%3D:=:g;s:%26:&:g;s:%24:\$:g;s:%21:\!:g;s:%2A:\*:g'; }

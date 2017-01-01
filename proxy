@@ -27,7 +27,7 @@ get_proxylists(){
   app_depend gocr
   app_exists convert || app_depend imagemagick
   app_depend curl
-  curl -s "http://proxy.speedtest.at/proxybyPerformance.php?offset=0"|busybox grep"Anonym" |busybox sed 's/<td align=left><b>/\n/g'|busybox grep">Anonym<"|cut -d "<" -f1 >> ~/.proxies
+  curl -s "http://proxy.speedtest.at/proxybyPerformance.php?offset=0"|busybox grep "Anonym" |busybox sed 's/<td align=left><b>/\n/g'|busybox grep ">Anonym<"|cut -d "<" -f1 >> ~/.proxies
   #curl -s http://www.freeproxy.ru/download/lists/goodproxy.txt |busybox grep -o "[0-9]\+\.[0-9]\+\.[0-9]\+\.[0-9]\+\:[0-9]\+" >>.proxies
   hmaurl=http://www.hidemyass.com/proxy-list
   for i in $(curl -s $hmaurl |busybox grep -o "[0-9]\+\.[0-9]\+\.[0-9]\+\.[0-9]\+\|\/proxy-list\/img\/port\/[0-9]\+\/[0-9]" |tr -d "[:blank:]"| busybox sed -e '{;N;s/\n/ /; }'); do
@@ -37,7 +37,7 @@ get_proxylists(){
   if [ ! $? ]; then continue; fi
   `convert /tmp/port /tmp/port.pnm >/dev/null 2>&1`;
    port=$(gocr -C "0123456789" /tmp/port.pnm);
-   if [ $port -gt 10 ] && [ $port -lt 70000 ] && [ "$(cat ~/.proxies|busybox grep$ip)" = "" ]; then echo $ip:$port >> ~/.proxies; fi
+   if [ $port -gt 10 ] && [ $port -lt 70000 ] && [ "$(cat ~/.proxies|busybox grep $ip)" = "" ]; then echo $ip:$port >> ~/.proxies; fi
   done
   cat $HOME/.proxies | sort | uniq -u > $HOME/.proxies
   sleep 1
@@ -47,12 +47,12 @@ test_proxies(){
   touch $HOME/.proxies.blacklist
   cat $HOME/.proxies | sort | uniq -u > $HOME/.proxies
   cat $HOME/.proxies.blacklist | sort | uniq -u > $HOME/.proxies.blacklist
-  qq rm $HOME/.proxies.working 
+  qq rm $HOME/.proxies.working
   sleep 1
   if [ ! -f $HOME/.proxies ]; then printf "$red proxyfile not found$RN"; return; fi
   for i in $(cat $HOME/.proxies); do
     _task "testing $i"
-      if [ "$(cat $HOME/.proxies.blacklist|busybox grep$i)" != "" ]; then printf "$black black $RN"; continue; fi
+      if [ "$(cat $HOME/.proxies.blacklist|busybox grep $i)" != "" ]; then printf "$black black $RN"; continue; fi
     if test_proxy $i; then echo $i >> $HOME/.proxies.working;_done; else echo $i >> $HOME/.proxies.blacklist; _fail; fi
   done
   if [ -f $HOME/.proxies.working ]; then mv $HOME/.proxies.working $HOME/.proxies; fi
@@ -62,7 +62,7 @@ curlrprox(){ curl -x $(prox) $@; }
 curltor(){ if checktor; then curl --socks5 127.0.0.1:9050 $@; fi; }
 checktor(){
   _task "Checking if tor works (use curltor for further torring)"
-  if [ "$(curl -s --socks5 127.0.0.1:9050 check.torproject.org |busybox grep'Congratulations. Your browser is configured to use Tor.')" != "" ]; then _done; return 0; else _fail; return 1; fi
+  if [ "$(curl -s --socks5 127.0.0.1:9050 check.torproject.org |busybox grep 'Congratulations. Your browser is configured to use Tor.')" != "" ]; then _done; return 0; else _fail; return 1; fi
 }
 
 test_proxy(){
@@ -71,7 +71,7 @@ test_proxy(){
   touch $lf
   url="http://www.w3.org"
   curl -s -m 3 -x $1 $url > $lf
-  if [ "$(cat $lf |busybox grep'World Wide Web Consortium (W3C)')" != "" ]; then rm $lf 2> /dev/null; return 0; fi
+  if [ "$(cat $lf |busybox grep 'World Wide Web Consortium (W3C)')" != "" ]; then rm $lf 2> /dev/null; return 0; fi
   return 1; }
 
 prox(){
